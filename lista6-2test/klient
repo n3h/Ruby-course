@@ -1,0 +1,45 @@
+require 'drb'
+
+class Ksiazka
+  attr_reader :tytul, :autor
+  attr_accessor :ilosc
+  def initialize(tytul, autor, ilosc_ksiazek)
+    @tytul = tytul
+    @autor = autor
+    @ilosc = ilosc_ksiazek
+  end
+  def testowa
+
+  end
+end
+
+class TestowaKlasa
+  def testowa
+  end
+
+  def wypisz
+    puts "To ja! TestowaKlasa"
+  end
+end
+
+o1 = Ksiazka.new("Dziady", "Mickiewicz", 1)
+p1 = TestowaKlasa.new
+
+obj = DRbObject.new_with_uri('druby://localhost:9000')
+if obj.respond_to?('store')
+  obj.store(o1, 1)
+  obj.store(p1, 2)
+end
+
+#puts o1.methods
+
+o2 = obj.restore(1)
+puts o2.inspect
+#obj.delete(1)
+puts obj.stan
+
+p2 = obj.restore(2)
+#p2.wypisz
+
+print obj.wyszukaj([:testowa])
+print obj.wyszukaj([:testowa, :wypisz])

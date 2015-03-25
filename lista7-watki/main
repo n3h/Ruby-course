@@ -1,0 +1,100 @@
+require 'open-uri'
+require 'monitor'
+
+class PrzegladarkaSerwisow
+  def initialize
+    @przegladniete_podstrony = []
+    @threads = [] #!
+    @lock1 = Monitor.new #!
+    @lock2 = Monitor.new #!
+    #@lock3 = Monitor.new
+    @lock_weight = Monitor.new #!
+    @lock_summary = Monitor.new #!
+    @reg_http = /<a href=["']([\w,-.\/]*)["']/
+    @reg_elementy = /(\.png|\.jpg|\.JPG|\.jpeg|\.JPEG|\.class|\.CLASS)/
+    @reg_tytul = /<title>(.*)<\/title>/
+    @reg_meta = /(META|meta)\s(NAME|name|http-equiv|HTTP-EQUIV)=["'](.*)["']\s(CONTENT|content)=["'](.*)["']/
+  end
+
+  def przeglad(start_page, depth, block)
+    przeglad_rek(start_page, '/', depth, block)
+    @threads.each { |t| t.join() } #!
+  end
+
+  def przeglad_rek(start_page, arg, depth, block)
+    return if depth < 0
+
+    #!
+    @lock1.synchronize do
+      return if @przegladniete_podstrony.include?(arg)
+      @przegladniete_podstrony << arg
+    end
+
+    open(start_page + arg) {|x|
+      x.each_line {|line|
+        @lock2.synchronize { block.call(line) }
+        adresy = line.scan(@reg_http)
+        adresy.each { |x|
+          if x[0][0] != "/"
+            x[0] = "/"+x[0]
+          end
+          #@lock3.synchronize do
+          #  @threads << Thread.new(x[0]) { przeglad_rek(start_page, x[0], depth - 1, block) } if (!@przegladniete_podstrony.include?(x[0]))
+          #end
+            if (!@przegladniete_podstrony.include?(x[0]))
+              @threads << Thread.new(x[0]) do
+                przeglad_rek(start_page, x[0], depth - 1, block)
+              end
+            end
+        }
+      }
+    }
+
+
+  end
+
+  def page_weight(page)
+    ilosc = 0
+
+    open(page) { |x|
+      x.each_line {|line|
+        @threads << Thread.new(line) {
+          ile = line.scan(@reg_elementy).count
+          @lock_weight.synchronize { ilosc += ile }
+        }
+      }
+    }
+    @threads.each { |t| t.join() } #!
+    puts ilosc
+  end
+
+  def page_summary(page)
+    open(page) {|x|
+      x.each_line {|line|
+        @threads << Thread.new(line) {
+          if line =~ @reg_tytul
+            @lock_summary.synchronize { puts "Tytul: #{$1}" }
+          end
+          if line =~ @reg_meta
+            @lock_summary.synchronize { puts "#{$3}: #{$5}" }
+          end
+        }
+      }
+    }
+    @threads.each { |t| t.join() } #!
+  end
+end
+
+#@lock = Monitor.new
+@i = 0
+p = PrzegladarkaSerwisow.new
+t1 = Time.now
+#p.page_weight('http://wp.pl')
+#p.page_summary('http://wp.pl')
+#p.przeglad('http://wiadomosci.wp.pl', 0, lambda{|x| @i += x.scan(/\.png/).count})
+#p.przeglad('http://wmi.uni.wroc.pl', 1, lambda{|x| @lock.synchronize { @i += x.scan(/\.png/).count } })
+
+p.przeglad('http://wmi.uni.wroc.pl', 1, lambda{|x| @i += x.scan(/\.png/).count })
+t2 = Time.now
+puts @i
+puts (t2-t1)

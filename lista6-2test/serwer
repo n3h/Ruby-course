@@ -1,0 +1,76 @@
+require 'drb'
+require 'dbm'
+require 'dbm'
+
+class Ksiazka
+  attr_reader :tytul, :autor
+  attr_accessor :ilosc
+  def initialize(tytul, autor, ilosc_ksiazek)
+    @tytul = tytul
+    @autor = autor
+    @ilosc = ilosc_ksiazek
+  end
+  def testowa
+
+  end
+end
+class TestowaKlasa
+  def testowa
+  end
+
+  def wypisz
+    puts "To ja! TestowaKlasa"
+  end
+end
+
+class LogSerwer
+  def initialize
+    @db = DBM.open('obiekty.dbm')
+  end
+  def store(obj, id)
+    @db[id] = obj
+  end
+  def restore(id)
+    return @db[id.to_s]
+  end
+  def delete(id)
+    @db.delete(id.to_s)
+  end
+  def stan
+    wynik = "<html>\n<body>\n\t<div>\n\t\t<ul>"
+    @db.each {|x, y| puts x
+    wynik += "\n\t\t\t<li> #{y.class.name} </li>\n\t\t\t<ul>\n"
+    y.instance_variables.each { |x|
+      wynik += "\t\t\t\t<li> #{x}: #{y.instance_variable_get(x)} </li> \n"
+    }
+    wynik += "\t\t\t</ul>\n"
+    }
+    wynik += "\t\t</ul>\n\t</div>\n</body>\n</html>"
+
+    return wynik
+  end
+  def wyszukaj(lista)
+    wynik = []
+    @db.each {|x, y|
+      #puts (lista - y.methods)
+      #puts "lista: "
+      p lista
+      #puts "methods: "
+      p y.methods
+      if (lista - y.methods).empty?
+        puts "#{x}: #{y.inspect}"
+        puts "tutaj"
+        wynik << x
+      end
+      puts "poza"
+    }
+    return wynik
+  end
+  def LogSerwer.run
+    @@server = LogSerwer.new
+    DRb.start_service('druby://localhost:9000', @@server)
+    DRb.thread.join
+  end
+end
+
+LogSerwer.run

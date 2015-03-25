@@ -1,0 +1,33 @@
+require 'drb'
+require_relative 'klasy'
+
+obj = DRbObject.new_with_uri('druby://localhost:9000')
+#puts obj.stan
+
+o1 = Ksiazka.new("Dziady", "Mickiewicz", 3)
+p1 = TestowaKlasa.new
+
+if obj.respond_to?('store')
+  obj.store(o1, 1)
+  obj.store(p1, 2)
+end
+
+o2 = obj.restore(1)
+p2 = obj.restore(2)
+
+puts "Tytul odtworzonej ksiazki: " + o2.tytul
+
+p2.wypisz
+
+puts "Stan klas: "
+puts obj.stan
+
+
+puts "Numery obiektow implementujacych metode testowa:"
+puts obj.wyszukaj([:testowa])
+puts "Numery obiektow implementujacych metody testowa i wypisz:"
+puts obj.wyszukaj([:testowa, :wypisz])
+
+obj.delete(2)
+puts "Stan klas po usunieciu obiektu 2: "
+puts obj.stan

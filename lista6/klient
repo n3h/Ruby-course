@@ -1,0 +1,20 @@
+require 'drb'
+
+obj = DRbObject.new_with_uri('druby://localhost:9000')
+
+if obj.respond_to?('save')
+  obj.save(1, "komunikat 1")
+
+  start = Time.now
+  obj.save(1, "komunikat 2")
+  obj.save(2, "komunikat 3")
+  obj.save(2, "komunikat 4")
+  sleep(2)
+  obj.save(2, "komunikat 5")
+  obj.save(2, "komunikat 6")
+  stop = Time.now
+end
+
+if obj.respond_to?('raport')
+  puts obj.raport(start, stop, 2, /.*/)
+end

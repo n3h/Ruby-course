@@ -1,0 +1,54 @@
+require_relative 'klasy'
+require 'drb'
+#require 'dbm'
+require 'yaml/dbm'
+
+class LogSerwer
+  def initialize
+    @db = YAML::DBM.open('obiekty.dbm') #DBM::WRCREAT
+  end
+  def store(obj, id)
+    @db[id] = obj
+  end
+  def restore(id)
+    return @db[id.to_s]
+  end
+  def delete(id)
+    @db.delete(id.to_s)
+  end
+  def stan
+    wynik = "<html>\n<body>\n\t<div>\n\t\t<ul>"
+    @db.each {|x, y|
+      wynik += "\n\t\t\t<li> #{y.class.name} </li>\n\t\t\t<ul>\n"
+      y.instance_variables.each { |x|
+        wynik += "\t\t\t\t<li> #{x}: #{y.instance_variable_get(x)} </li> \n"
+      }
+      wynik += "\t\t\t</ul>\n"
+    }
+    wynik += "\t\t</ul>\n\t</div>\n</body>\n</html>"
+
+    return wynik
+  end
+  def wyszukaj(lista)
+    wynik = []
+    @db.each {|x, y|
+      #puts (lista - y.methods)
+      #puts "lista: "
+      #p lista
+      #puts "methods: "
+      #p y.methods
+      if (lista - y.methods).empty?
+        #puts "#{x}: #{y.inspect}"
+        wynik << x
+      end
+    }
+    return wynik
+  end
+  def LogSerwer.run
+    @@server = LogSerwer.new
+    DRb.start_service('druby://localhost:9000', @@server)
+    DRb.thread.join
+  end
+end
+
+LogSerwer.run

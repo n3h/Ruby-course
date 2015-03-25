@@ -1,0 +1,60 @@
+require 'drb'
+#require 'dbm'
+require 'yaml/dbm'
+require 'yaml'
+
+class LogSerwer
+  def initialize
+    @db = YAML::DBM.open('logi5.dbm', DBM::WRCREAT)
+  end
+
+  def save(prg_id, msg)
+    #baza = @db[prg_id.to_s] #<< { Time.now.to_s => msg }
+   # baza[Time.now.to_s] = msg
+    #logi = YAML.load( @db[prg_id.to_s] )
+    #logi[Time.new] = msg
+    #@db[prg_id.to_s] = YAML.dump( logi )
+
+    if @db.include?(prg_id.to_s)
+      h1 = { Time.now.to_s => msg }
+      puts h1
+      pp = @db[prg_id.to_s]
+      pp.merge!(h1)
+      #@db.delete(prg_id.to_s)
+      @db[prg_id.to_s].to_hash.merge!(h1)
+      #@db.store(prg_id.to_s, h1)
+      puts "pp"
+      puts pp
+      #@db[prg_id.to_s] = { Time.now.to_s => msg }
+      puts "a"
+      puts @db[prg_id.to_s]
+      puts "a2"
+    else
+      @db[prg_id.to_s] = { Time.now.to_s => msg }
+      puts "b"
+    end
+
+  end
+
+  def raport(od, do_czasu, prg_id, re)
+    wynik = "<html>\n<body>\n\t<div>\n\t\t<ul>\n"
+
+    #@db.each do |x, y|
+    #  ddd = y.select {|czas, msg| czas >= od.to_s && czas <= do_czasu.to_s && msg =~ re}
+    #  ddd.each {|czas, msg| wynik += "\t\t\t<li> #{czas}, #{msg} </li>\n" }
+    #end
+    puts @db["2"]
+    lista = @db[prg_id.to_s]
+    lista.each {|czas, msg| wynik += "\t\t\t<li> #{czas}, #{msg} </li>\n" }
+
+    wynik += "\t\t</ul>\n\t</div>\n</body>\n</html>"
+  end
+
+  def LogSerwer.run
+    @@server = LogSerwer.new
+    DRb.start_service('druby://localhost:9000', @@server)
+    DRb.thread.join
+  end
+end
+
+LogSerwer.run

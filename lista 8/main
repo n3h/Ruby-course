@@ -1,0 +1,104 @@
+require 'tk'
+
+class Okienko
+  def initialize
+    @odpowiedzi = [[0,0,0], [0,0,0], [0,0,0]]
+    @rysunki = []
+    @rundaGracza = false
+    @rnd = Random.new_seed
+    @ileRuchow = 0
+    @koniecGry = false
+  end
+
+  def uruchom
+    #okno
+    @win = TkRoot.new { title 'Kółko i krzyżyk'; geometry "620x640"}
+
+    #menu
+    menu = TkMenu.new(@win)
+    glowne = TkMenu.new(menu)
+    menu.add('cascade', :menu => glowne, :label => 'Menu')
+    glowne.add('command', :label => 'Zaczyna gracz', :command => proc { @rundaGracza = true; self.gra })
+    glowne.add('command', :label => 'Zaczyna komputer', :command => proc { @rundaGracza = false; self.gra })
+    glowne.add('command', :label => 'KONIEC', :command => proc { @win.destroy })
+    @win.menu(menu)
+
+    Tk.mainloop
+  end
+
+  def gra
+    if @ileRuchow > 0
+      @odpowiedzi = [[0,0,0], [0,0,0], [0,0,0]]
+      @ileRuchow = 0
+      @koniecGry = false
+    end
+
+    3.times do |x|
+      @rysunki << []
+      3.times do |y|
+        @rysunki[x][y] = TkCanvas.new(@win) { grid(:row => x+1, :column => y+1)}
+        @rysunki[x][y].place('height' => 200, 'width' => 200, 'x' => 10 + x * 200, 'y' => 10 + y * 200)
+        @rysunki[x][y].create(TkcRectangle, 10, 10, 190, 190, 'width' => 2)
+        @rysunki[x][y].bind("Button-1") {
+          if @rundaGracza && @odpowiedzi[x][y] == 0 && (not @koniecGry)
+            @rysunki[x][y].create(TkcOval, 20, 20, 180, 180, 'width' => 5)
+            @odpowiedzi[x][y] = 1
+            self.sprawdz
+            @ileRuchow += 1
+            @rundaGracza = false
+            self.komputer if @ileRuchow < 9
+          end
+        }
+      end
+    end
+    self.komputer if not @rundaGracza
+  end
+
+  def komputer
+    return if @koniecGry
+    loop do
+      randomX = Random.rand(3)
+      randomY = Random.rand(3)
+      if @odpowiedzi[randomX][randomY] == 0
+        @odpowiedzi[randomX][randomY] = 2
+        @rysunki[randomX][randomY].create(TkcLine, 20, 20, 180, 180, 'width' => 5)
+        @rysunki[randomX][randomY].create(TkcLine, 20, 180, 180, 20, 'width' => 5)
+        break
+      end
+    end
+    self.sprawdz
+    @ileRuchow += 1
+    @rundaGracza = true
+  end
+
+  def sprawdz
+    if @odpowiedzi[0][0] != 0 && @odpowiedzi[0][0] == @odpowiedzi[1][1] && @odpowiedzi[0][0] == @odpowiedzi[2][2]
+      3.times {|x| @rysunki[x][x].create(TkcLine, 0, 0, 210, 210, 'width' => 5, 'fill' => 'red') }
+      self.koniec
+    end
+    if @odpowiedzi[2][0] != 0 && @odpowiedzi[2][0] == @odpowiedzi[1][1] && @odpowiedzi[2][0] == @odpowiedzi[0][2]
+      3.times {|x| @rysunki[2-x][x].create(TkcLine, 0, 210, 210, 0, 'width' => 5, 'fill' => 'red') }
+      self.koniec
+    end
+    3.times do |x|
+      if @odpowiedzi[x][0] != 0 && @odpowiedzi[x][0] == @odpowiedzi[x][1] && @odpowiedzi[x][0] == @odpowiedzi[x][2]
+        3.times {|y| @rysunki[x][y].create(TkcLine, 105, 0, 105, 210, 'width' => 5, 'fill' => 'red') }
+        self.koniec
+      end
+      if @odpowiedzi[0][x] != 0 && @odpowiedzi[0][x] == @odpowiedzi[1][x] && @odpowiedzi[0][x] == @odpowiedzi[2][x]
+        3.times {|y| @rysunki[y][x].create(TkcLine, 0, 105, 210, 105, 'width' => 5, 'fill' => 'red') }
+        self.koniec
+      end
+    end
+  end
+
+  def koniec
+    @koniecGry = true
+    @rundaGracza ? kto = "  Gracz\n" : kto = "Komputer\n"
+    @rysunki[1][1].create(TkcText, 105, 95, 'text'=>kto + ' wygrał!', 'font'=>'Helvetia 28 bold', 'fill'=>'blue')
+  end
+
+end
+
+gra = Okienko.new
+gra.uruchom
